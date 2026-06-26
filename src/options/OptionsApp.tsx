@@ -5,11 +5,17 @@
 import React, { useState, useEffect } from 'react';
 import { UserSettings, AIProvider } from '../shared/types';
 import { settingsManager } from '../settings/SettingsManager';
-import { Sparkles, Key, Cpu, MessageSquareText, Shield, Save, RotateCcw, Check, Moon, Sun } from 'lucide-react';
+import { Sparkles, Key, Cpu, MessageSquareText, Shield, Save, RotateCcw, Check, Zap, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { GeminiClient } from '../ai/GeminiClient';
+import { OpenAIClient } from '../ai/OpenAIClient';
+import { AnthropicClient } from '../ai/AnthropicClient';
+import { HeuristicReportGenerator } from '../ai/HeuristicReportGenerator';
 
 export const OptionsApp: React.FC = () => {
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [saved, setSaved] = useState(false);
+  const [testingApi, setTestingApi] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; msg: string; timeMs?: number } | null>(null);
 
   useEffect(() => {
     settingsManager.getSettings().then(setSettings);
@@ -31,6 +37,46 @@ export const OptionsApp: React.FC = () => {
     if (confirm('Reset all configurations to factory defaults?')) {
       const def = await settingsManager.resetToDefaults();
       setSettings(def);
+      setTestResult(null);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    if (!settings) return;
+    setTestingApi(true);
+    setTestResult(null);
+    const start = performance.now();
+
+    try {
+      let client;
+      if (settings.aiProvider === 'gemini') {
+        client = new GeminiClient(settings.apiKey, settings.selectedModel || 'gemini-2.5-pro');
+      } else if (settings.aiProvider === 'openai') {
+        client = new OpenAIClient(settings.apiKey, settings.selectedModel || 'gpt-4o');
+      } else if (settings.aiProvider === 'anthropic') {
+        client = new AnthropicClient(settings.apiKey, settings.selectedModel || 'claude-3-5-sonnet-20240620');
+      } else {
+        client = new HeuristicReportGenerator();
+      }
+
+      const testPrompt = `Return a valid JSON object with this exact structure: { "executiveSummary": "Connection verified!", "websiteOverview": "ok", "designPhilosophy": "ok", "targetAudience": "ok", "brandPersonalitySummary": "ok", "layoutExplanation": "ok", "typographyExplanation": "ok", "colorExplanation": "ok", "componentHighlights": [], "strengths": ["ok"], "weaknesses": ["ok"], "improvementSuggestions": ["ok"], "scorecard": { "professionalismScore": 100, "accessibilityScore": 100, "performanceScore": 100, "modernUiScore": 100, "maintainabilityScore": 100, "overallScore": 100 } }`;
+      
+      const res = await client.generateInspectionReport(testPrompt, { test: true, url: 'https://test.local', title: 'Test' });
+      const elapsed = Math.round(performance.now() - start);
+
+      if (res && res.scorecard && typeof res.scorecard.overallScore === 'number') {
+        setTestResult({
+          success: true,
+          msg: `Verified ${settings.aiProvider.toUpperCase()} (${settings.selectedModel || 'default model'}). API active!`,
+          timeMs: elapsed,
+        });
+      } else {
+        setTestResult({ success: false, msg: `API returned unexpected JSON format. Check API key permissions.` });
+      }
+    } catch (err) {
+      setTestResult({ success: false, msg: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setTestingApi(false);
     }
   };
 
@@ -53,17 +99,43 @@ export const OptionsApp: React.FC = () => {
         <form onSubmit={handleSave} className="space-y-6">
           {/* Section 1: AI Provider */}
           <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
-            <div className="flex items-center gap-2 text-sky-400 font-bold text-sm">
-              <Cpu size={18} />
-              <span>AI Engine & Model Selection</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sky-400 font-bold text-sm">
+                <Cpu size={18} />
+                <span>AI Engine & Model Selection</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleTestConnection}
+                disabled={testingApi}
+                className="px-3.5 py-1.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all disabled:opacity-50"
+              >
+                {testingApi ? <Loader2 size={13} className="animate-spin" /> : <Zap size={13} />}
+                <span>{testingApi ? 'Testing Model...' : 'Test API Connection'}</span>
+              </button>
             </div>
+
+            {testResult && (
+              <div className={`p-3 rounded-xl border text-xs flex items-center justify-between ${
+                testResult.success ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+              }`}>
+                <div className="flex items-center gap-2">
+                  {testResult.success ? <CheckCircle2 size={16} className="text-emerald-400 shrink-0" /> : <AlertCircle size={16} className="text-rose-400 shrink-0" />}
+                  <span className="font-medium">{testResult.msg}</span>
+                </div>
+                {testResult.timeMs && <span className="font-mono text-[11px] opacity-80">{testResult.timeMs}ms</span>}
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-2">Active AI Provider</label>
                 <select
                   value={settings.aiProvider}
-                  onChange={(e) => setSettings({ ...settings, aiProvider: e.target.value as AIProvider })}
+                  onChange={(e) => {
+                    setSettings({ ...settings, aiProvider: e.target.value as AIProvider });
+                    setTestResult(null);
+                  }}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-sky-500 font-medium"
                 >
                   <option value="heuristic">Built-in Staff Heuristic Engine (Free / No Key Needed)</option>
@@ -78,11 +150,13 @@ export const OptionsApp: React.FC = () => {
                 <input
                   type="text"
                   value={settings.selectedModel}
-                  onChange={(e) => setSettings({ ...settings, selectedModel: e.target.value })}
+                  onChange={(e) => {
+                    setSettings({ ...settings, selectedModel: e.target.value });
+                    setTestResult(null);
+                  }}
                   placeholder="e.g., gemini-3.1-pro or gpt-4o"
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-sky-500 font-mono"
-                >
-                </input>
+                />
               </div>
             </div>
 
@@ -95,7 +169,10 @@ export const OptionsApp: React.FC = () => {
                 <input
                   type="password"
                   value={settings.apiKey}
-                  onChange={(e) => setSettings({ ...settings, apiKey: e.target.value })}
+                  onChange={(e) => {
+                    setSettings({ ...settings, apiKey: e.target.value });
+                    setTestResult(null);
+                  }}
                   placeholder="Paste your secret API key..."
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-sky-500 font-mono"
                 />
