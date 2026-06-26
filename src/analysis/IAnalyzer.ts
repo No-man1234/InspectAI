@@ -7,9 +7,9 @@ export interface AnalyzerContext {
   doc: Document;
   window: Window;
   url: string;
-  normalizedDom?: Element;
-  runtimeSignals?: Record<string, unknown>;
-  computedStylesCache?: Map<Element, CSSStyleDeclaration>;
+  normalizedDom?: Element | undefined;
+  runtimeSignals?: Record<string, unknown> | undefined;
+  computedStylesCache?: Map<Element, CSSStyleDeclaration> | undefined;
 }
 
 export interface IAnalyzer<TResult> {

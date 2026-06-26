@@ -17,6 +17,7 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
     handleCaptureTab().then(sendResponse);
     return true; // async
   }
+  return false;
 });
 
 async function handleCaptureTab(): Promise<{ success: boolean; dataUrl?: string; error?: string }> {

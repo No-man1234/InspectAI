@@ -9,7 +9,7 @@ export class DomAnalyzer implements IAnalyzer<DomMetrics> {
   readonly name = 'DomAnalyzer';
   readonly version = '1.0.0';
 
-  public analyze({ doc }: AnalyzerContext): DomMetrics {
+  public analyze({ doc, window }: AnalyzerContext): DomMetrics {
     const allElements = doc.getElementsByTagName('*');
     const totalNodes = allElements.length;
 
@@ -64,8 +64,9 @@ export class DomAnalyzer implements IAnalyzer<DomMetrics> {
     let webComponentsCount = 0;
     for (let i = 0; i < Math.min(allElements.length, 1000); i++) {
       const el = allElements[i];
-      if (el.shadowRoot) shadowDomRootsCount++;
-      if (el.tagName.includes('-')) webComponentsCount++;
+      if (!el) continue;
+      if ('shadowRoot' in el && el.shadowRoot) shadowDomRootsCount++;
+      if (el.tagName && typeof el.tagName === 'string' && el.tagName.includes('-')) webComponentsCount++;
     }
 
     // Sticky / Fixed / Infinite Scroll checks
@@ -74,17 +75,22 @@ export class DomAnalyzer implements IAnalyzer<DomMetrics> {
     const sampleSize = Math.min(allElements.length, 250);
     for (let i = 0; i < sampleSize; i++) {
       const el = allElements[i];
-      const style = window.getComputedStyle(el);
-      if (style.position === 'sticky') hasStickyElements = true;
-      if (style.position === 'fixed') hasFixedElements = true;
+      if (!el || !window || !window.getComputedStyle) continue;
+      try {
+        const style = window.getComputedStyle(el);
+        if (style?.position === 'sticky') hasStickyElements = true;
+        if (style?.position === 'fixed') hasFixedElements = true;
+      } catch {
+        // ignore computed style errors on disconnected nodes
+      }
     }
 
     // Infinite scroll detection heuristic
     const hasInfiniteScroll =
       doc.body &&
-      (doc.body.scrollHeight > window.innerHeight * 4) &&
+      (doc.body.scrollHeight > (window?.innerHeight || 800) * 4) &&
       Array.from(doc.querySelectorAll('*')).some((el) =>
-        el.className && typeof el.className === 'string' && el.className.toLowerCase().includes('infinite')
+        el?.className && typeof el.className === 'string' && el.className.toLowerCase().includes('infinite')
       );
 
     return {

@@ -62,6 +62,7 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
     sendResponse({ success: true });
     return false;
   }
+  return false;
 });
 
 async function handleStartAnalysis(): Promise<{ success: boolean; report?: CompleteInspectionResult; error?: string }> {
