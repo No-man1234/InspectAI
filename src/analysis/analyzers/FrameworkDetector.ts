@@ -23,7 +23,7 @@ const TECH_RULES: TechRule[] = [
   { name: 'Solid', category: 'JS Framework', domMarkers: ['[data-hk]'] },
   { name: 'Astro', category: 'JS Framework', domMarkers: ['astro-island', 'astro-root'] },
   { name: 'Remix', category: 'JS Framework', domMarkers: ['window.__remixContext', 'script[src*="@remix-run"]'] },
-  { name: 'Qwik', category: 'JS Framework', domMarkers: ['[q:id]', 'script[type="qwik/json"]'] },
+  { name: 'Qwik', category: 'JS Framework', domMarkers: ['[q\\:id]', 'script[type="qwik/json"]'] },
   { name: 'Tailwind CSS', category: 'CSS Architecture', domMarkers: ['.flex.flex-col', '.space-x-4', '.max-w-7xl'] },
   { name: 'Bootstrap', category: 'CSS Architecture', domMarkers: ['.container .row .col-md-6', '.btn.btn-primary'] },
   { name: 'shadcn/ui', category: 'UI Library', domMarkers: ['[data-radix-collection-item]', '[class*="bg-background"][class*="text-foreground"]'] },
@@ -61,9 +61,17 @@ export class FrameworkDetector implements IAnalyzer<FrameworkConfidence[]> {
       // Check DOM markers
       for (const m of rule.domMarkers) {
         if (m.startsWith('.') || m.startsWith('#') || m.startsWith('[')) {
-          if (doc.querySelector(m)) {
-            score = Math.max(score, 90);
-            markersFound.push(`DOM selector '${m}' matched`);
+          try {
+            if (doc.querySelector(m)) {
+              score = Math.max(score, 90);
+              markersFound.push(`DOM selector '${m}' matched`);
+            }
+          } catch {
+            // Ignore syntax errors from custom attribute namespaces / non-standard pseudo selectors
+            if (html.includes(m)) {
+              score = Math.max(score, 85);
+              markersFound.push(`HTML string signature '${m}' detected via fallback`);
+            }
           }
         } else if (html.includes(m)) {
           score = Math.max(score, 85);
