@@ -25,6 +25,13 @@ export const OptionsApp: React.FC = () => {
     return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">Loading settings...</div>;
   }
 
+  const updateAndSave = async (updated: UserSettings) => {
+    setSettings(updated);
+    await settingsManager.saveSettings(updated);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!settings) return;
@@ -43,6 +50,7 @@ export const OptionsApp: React.FC = () => {
 
   const handleTestConnection = async () => {
     if (!settings) return;
+    await settingsManager.saveSettings(settings);
     setTestingApi(true);
     setTestResult(null);
     const start = performance.now();
@@ -133,7 +141,7 @@ export const OptionsApp: React.FC = () => {
                 <select
                   value={settings.aiProvider}
                   onChange={(e) => {
-                    setSettings({ ...settings, aiProvider: e.target.value as AIProvider });
+                    updateAndSave({ ...settings, aiProvider: e.target.value as AIProvider });
                     setTestResult(null);
                   }}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-sky-500 font-medium"
@@ -151,7 +159,7 @@ export const OptionsApp: React.FC = () => {
                   type="text"
                   value={settings.selectedModel}
                   onChange={(e) => {
-                    setSettings({ ...settings, selectedModel: e.target.value });
+                    updateAndSave({ ...settings, selectedModel: e.target.value });
                     setTestResult(null);
                   }}
                   placeholder="e.g., gemini-3.1-pro or gpt-4o"
@@ -170,7 +178,7 @@ export const OptionsApp: React.FC = () => {
                   type="password"
                   value={settings.apiKey}
                   onChange={(e) => {
-                    setSettings({ ...settings, apiKey: e.target.value });
+                    updateAndSave({ ...settings, apiKey: e.target.value });
                     setTestResult(null);
                   }}
                   placeholder="Paste your secret API key..."

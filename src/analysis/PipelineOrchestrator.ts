@@ -132,8 +132,27 @@ export class PipelineOrchestrator {
 
     // Stage 9: Generate AI Report
     reportProgress('GENERATE_REPORT', 90);
-    const aiClient = await aiClientFactory.getClient();
-    const aiReport = await aiClient.generateInspectionReport(prompt, payloadForAI);
+    let aiReport;
+    const isWebpageContentScript = typeof window !== 'undefined' && typeof document !== 'undefined' && !window.location?.href?.startsWith('chrome-extension://');
+    if (isWebpageContentScript && typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+      try {
+        const bgResp = await chrome.runtime.sendMessage({
+          action: 'INSPECTOR_GENERATE_AI_REPORT',
+          payload: { prompt, data: payloadForAI },
+        });
+        if (bgResp?.success && bgResp.report) {
+          aiReport = bgResp.report;
+        } else if (bgResp?.error) {
+          console.warn('Background AI generation proxy returned error:', bgResp.error);
+        }
+      } catch (err) {
+        console.warn('Background AI IPC error:', err);
+      }
+    }
+    if (!aiReport) {
+      const aiClient = await aiClientFactory.getClient();
+      aiReport = await aiClient.generateInspectionReport(prompt, payloadForAI);
+    }
     await yieldThread();
 
     // Stage 10: Render Report Payload

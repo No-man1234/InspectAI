@@ -9,6 +9,7 @@ import { GeminiClient } from '../ai/GeminiClient';
 import { OpenAIClient } from '../ai/OpenAIClient';
 import { AnthropicClient } from '../ai/AnthropicClient';
 import { HeuristicReportGenerator } from '../ai/HeuristicReportGenerator';
+import { settingsManager } from '../settings/SettingsManager';
 
 chrome.runtime.onInstalled.addListener(() => {
   console.log('AI Website Inspector Chrome Extension successfully installed.');
@@ -42,13 +43,18 @@ async function handleCaptureTab(): Promise<{ success: boolean; dataUrl?: string;
 
 async function handleGenerateAiReport(payload: any): Promise<{ success: boolean; report?: any; error?: string }> {
   try {
+    const settings = await settingsManager.getSettings();
+    const provider = settings.aiProvider || payload?.provider || 'heuristic';
+    const apiKey = settings.apiKey || payload?.apiKey || '';
+    const model = settings.selectedModel || payload?.model || '';
+
     let client;
-    if (payload?.provider === 'gemini') {
-      client = new GeminiClient(payload.apiKey, payload.model);
-    } else if (payload?.provider === 'openai') {
-      client = new OpenAIClient(payload.apiKey, payload.model);
-    } else if (payload?.provider === 'anthropic') {
-      client = new AnthropicClient(payload.apiKey, payload.model);
+    if (provider === 'gemini') {
+      client = new GeminiClient(apiKey, model);
+    } else if (provider === 'openai') {
+      client = new OpenAIClient(apiKey, model);
+    } else if (provider === 'anthropic') {
+      client = new AnthropicClient(apiKey, model);
     } else {
       client = new HeuristicReportGenerator();
     }
