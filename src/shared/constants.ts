@@ -12,6 +12,7 @@ export const MSG_TOGGLE_OVERLAY = 'INSPECTOR_TOGGLE_OVERLAY';
 export const MSG_HIGHLIGHT_SELECTOR = 'INSPECTOR_HIGHLIGHT_SELECTOR';
 export const MSG_CAPTURE_TAB = 'INSPECTOR_CAPTURE_TAB';
 export const MSG_GET_CACHED_REPORT = 'INSPECTOR_GET_CACHED_REPORT';
+export const MSG_GENERATE_AI_REPORT = 'INSPECTOR_GENERATE_AI_REPORT';
 
 export const DEFAULT_SETTINGS: UserSettings = {
   aiProvider: 'heuristic', // Defaults to deterministic heuristic report so zero setup is needed

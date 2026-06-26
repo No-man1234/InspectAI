@@ -5,6 +5,7 @@
 import { IAIClient } from './IAIClient';
 import { AIReportSummary } from '../shared/types';
 import { HeuristicReportGenerator } from './HeuristicReportGenerator';
+import { MSG_GENERATE_AI_REPORT } from '../shared/constants';
 
 export class OpenAIClient implements IAIClient {
   readonly providerName = 'OpenAI';
@@ -20,6 +21,19 @@ export class OpenAIClient implements IAIClient {
   public async generateInspectionReport(prompt: string, payload: Record<string, unknown>): Promise<AIReportSummary> {
     if (!this.apiKey || this.apiKey.trim() === '') {
       return this.fallback.generateInspectionReport(prompt, payload);
+    }
+
+    const isContentScript = typeof window !== 'undefined' && typeof document !== 'undefined' && !window.location?.href?.startsWith('chrome-extension://');
+    if (isContentScript && typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+      try {
+        const bgResp = await chrome.runtime.sendMessage({
+          action: MSG_GENERATE_AI_REPORT,
+          payload: { provider: 'openai', apiKey: this.apiKey, model: this.model, prompt, data: payload },
+        });
+        if (bgResp && bgResp.success && bgResp.report) return bgResp.report;
+      } catch {
+        // proxy fallback
+      }
     }
 
     try {
