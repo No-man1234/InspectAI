@@ -58,7 +58,7 @@ export const OptionsApp: React.FC = () => {
     try {
       let client;
       if (settings.aiProvider === 'gemini') {
-        client = new GeminiClient(settings.apiKey, settings.selectedModel || 'gemini-2.5-pro');
+        client = new GeminiClient(settings.apiKey, settings.selectedModel || 'gemini-1.5-flash');
       } else if (settings.aiProvider === 'openai') {
         client = new OpenAIClient(settings.apiKey, settings.selectedModel || 'gpt-4o');
       } else if (settings.aiProvider === 'anthropic') {
@@ -162,7 +162,7 @@ export const OptionsApp: React.FC = () => {
                     updateAndSave({ ...settings, selectedModel: e.target.value });
                     setTestResult(null);
                   }}
-                  placeholder="e.g., gemini-3.1-pro or gpt-4o"
+                  placeholder="e.g., gemini-1.5-flash or gpt-4o"
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-sky-500 font-mono"
                 />
               </div>

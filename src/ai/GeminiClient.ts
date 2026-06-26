@@ -13,15 +13,24 @@ export class GeminiClient implements IAIClient {
   private model: string;
   private fallback = new HeuristicReportGenerator();
 
-  constructor(apiKey: string, model: string = 'gemini-2.5-pro') {
+  constructor(apiKey: string, model: string = 'gemini-1.5-flash') {
     this.apiKey = apiKey;
-    this.model = model;
+    this.model = model || 'gemini-1.5-flash';
+  }
+
+  private cleanJson(raw: string): string {
+    let clean = raw.trim();
+    if (clean.startsWith('```json')) clean = clean.slice(7);
+    else if (clean.startsWith('```')) clean = clean.slice(3);
+    if (clean.endsWith('```')) clean = clean.slice(0, -3);
+    return clean.trim();
   }
 
   public async generateInspectionReport(prompt: string, payload: Record<string, unknown>): Promise<AIReportSummary> {
     if (!this.apiKey || this.apiKey.trim() === '') {
       console.warn('Gemini API key unconfigured. Falling back to built-in Heuristic Engine.');
-      return this.fallback.generateInspectionReport(prompt, payload);
+      const fb = await this.fallback.generateInspectionReport(prompt, payload);
+      return { ...fb, aiEngineUsed: '⚙️ Built-in Staff Heuristic Engine (Missing API Key)' };
     }
 
     const isContentScript = typeof window !== 'undefined' && typeof document !== 'undefined' && !window.location?.href?.startsWith('chrome-extension://');
@@ -38,7 +47,8 @@ export class GeminiClient implements IAIClient {
     }
 
     try {
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
+      const activeModel = this.model.includes('3.1') ? 'gemini-1.5-flash' : this.model;
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent?key=${this.apiKey}`;
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -52,7 +62,9 @@ export class GeminiClient implements IAIClient {
       });
 
       if (!response.ok) {
-        throw new Error(`Gemini API returned status ${response.status}`);
+        const errText = await response.text();
+        console.error(`Google Gemini API Error (${response.status}):`, errText);
+        throw new Error(`Status ${response.status}: ${errText.slice(0, 100)}`);
       }
 
       const data = await response.json();
@@ -61,12 +73,13 @@ export class GeminiClient implements IAIClient {
         throw new Error('Empty text candidate returned from Gemini.');
       }
 
-      const parsed: AIReportSummary = JSON.parse(rawText);
-      return parsed;
+      const parsed: AIReportSummary = JSON.parse(this.cleanJson(rawText));
+      return { ...parsed, aiEngineUsed: `🤖 Live Cloud AI REST API Output (${activeModel})` };
     } catch (err) {
-      console.error('Gemini API execution error:', err);
-      // Graceful fallback to guarantee user still gets an executive report
-      return this.fallback.generateInspectionReport(prompt, payload);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error('Gemini API execution error:', errMsg);
+      const fb = await this.fallback.generateInspectionReport(prompt, payload);
+      return { ...fb, aiEngineUsed: `⚙️ Offline Fallback (Gemini API Error: ${errMsg})` };
     }
   }
 }

@@ -16,7 +16,7 @@ export class AIClientFactory {
 
     switch (settings.aiProvider) {
       case 'gemini':
-        return new GeminiClient(settings.apiKey, settings.selectedModel || 'gemini-2.5-pro');
+        return new GeminiClient(settings.apiKey, settings.selectedModel || 'gemini-1.5-flash');
       case 'openai':
         return new OpenAIClient(settings.apiKey, settings.selectedModel || 'gpt-4o');
       case 'anthropic':

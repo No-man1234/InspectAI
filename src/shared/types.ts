@@ -225,6 +225,7 @@ export interface AIReportSummary {
   weaknesses: string[];
   improvementSuggestions: string[];
   scorecard: Scorecard;
+  aiEngineUsed?: string;
 }
 
 export interface CompleteInspectionResult {

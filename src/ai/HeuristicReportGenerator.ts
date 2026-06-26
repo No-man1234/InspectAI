@@ -111,6 +111,7 @@ export class HeuristicReportGenerator implements IAIClient {
       weaknesses,
       improvementSuggestions,
       scorecard,
+      aiEngineUsed: '⚙️ Built-in Staff Heuristic Engine (Offline Mode)',
     };
   }
 }

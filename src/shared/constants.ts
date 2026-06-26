@@ -17,7 +17,7 @@ export const MSG_GENERATE_AI_REPORT = 'INSPECTOR_GENERATE_AI_REPORT';
 export const DEFAULT_SETTINGS: UserSettings = {
   aiProvider: 'heuristic', // Defaults to deterministic heuristic report so zero setup is needed
   apiKey: '',
-  selectedModel: 'gemini-3.1-pro',
+  selectedModel: 'gemini-1.5-flash',
   autoAnalyzeOnPopup: false,
   enableOverlay: true,
   darkMode: true,

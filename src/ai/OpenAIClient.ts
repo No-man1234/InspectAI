@@ -54,13 +54,19 @@ export class OpenAIClient implements IAIClient {
         }),
       });
 
-      if (!response.ok) throw new Error(`OpenAI error ${response.status}`);
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`OpenAI error ${response.status}: ${errText.slice(0, 100)}`);
+      }
       const data = await response.json();
       const text = data?.choices?.[0]?.message?.content;
-      return JSON.parse(text);
+      const parsed = JSON.parse(text);
+      return { ...parsed, aiEngineUsed: `🤖 Live Cloud AI REST API Output (${this.model})` };
     } catch (err) {
-      console.error('OpenAI error:', err);
-      return this.fallback.generateInspectionReport(prompt, payload);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error('OpenAI error:', errMsg);
+      const fb = await this.fallback.generateInspectionReport(prompt, payload);
+      return { ...fb, aiEngineUsed: `⚙️ Offline Fallback (OpenAI Error: ${errMsg})` };
     }
   }
 }

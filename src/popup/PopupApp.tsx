@@ -248,13 +248,11 @@ export const PopupApp: React.FC = () => {
               <div className="flex items-center gap-2">
                 <span className="text-xs text-slate-400">Analysis Generator:</span>
                 <span className={`text-[11px] font-bold px-2 py-0.5 rounded border font-mono ${
-                  report.aiReport.executiveSummary.includes('Our DOM analysis detected')
+                  (report.aiReport as any).aiEngineUsed?.includes('Offline') || (report.aiReport as any).aiEngineUsed?.includes('Heuristic')
                     ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
                     : 'bg-sky-500/10 text-sky-300 border-sky-500/30'
                 }`}>
-                  {report.aiReport.executiveSummary.includes('Our DOM analysis detected')
-                    ? '⚙️ Built-in Staff Heuristic Engine (Offline Fallback)'
-                    : '🤖 Live Cloud AI REST API Output'}
+                  {(report.aiReport as any).aiEngineUsed || '🤖 Live Cloud AI REST API Output'}
                 </span>
               </div>
               <button onClick={openOptions} className="text-[11px] text-sky-400 hover:underline font-medium">

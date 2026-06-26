@@ -54,13 +54,19 @@ export class AnthropicClient implements IAIClient {
         }),
       });
 
-      if (!response.ok) throw new Error(`Anthropic error ${response.status}`);
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Anthropic error ${response.status}: ${errText.slice(0, 100)}`);
+      }
       const data = await response.json();
       const text = data?.content?.[0]?.text;
-      return JSON.parse(text);
+      const parsed = JSON.parse(text);
+      return { ...parsed, aiEngineUsed: `🤖 Live Cloud AI REST API Output (${this.model})` };
     } catch (err) {
-      console.error('Anthropic error:', err);
-      return this.fallback.generateInspectionReport(prompt, payload);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error('Anthropic error:', errMsg);
+      const fb = await this.fallback.generateInspectionReport(prompt, payload);
+      return { ...fb, aiEngineUsed: `⚙️ Offline Fallback (Anthropic Error: ${errMsg})` };
     }
   }
 }
