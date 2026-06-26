@@ -243,6 +243,25 @@ export const PopupApp: React.FC = () => {
         {/* TAB 1: EXECUTIVE DASHBOARD */}
         {report && activeTab === 'dashboard' && (
           <div className="space-y-5">
+            {/* Generator Indicator Badge */}
+            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/90 border border-slate-800">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400">Analysis Generator:</span>
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded border font-mono ${
+                  report.aiReport.executiveSummary.includes('Our DOM analysis detected')
+                    ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                    : 'bg-sky-500/10 text-sky-300 border-sky-500/30'
+                }`}>
+                  {report.aiReport.executiveSummary.includes('Our DOM analysis detected')
+                    ? '⚙️ Built-in Staff Heuristic Engine (Offline Fallback)'
+                    : '🤖 Live Cloud AI REST API Output'}
+                </span>
+              </div>
+              <button onClick={openOptions} className="text-[11px] text-sky-400 hover:underline font-medium">
+                ⚙️ AI Model Settings →
+              </button>
+            </div>
+
             {/* Scorecard Cards */}
             <div className="grid grid-cols-3 gap-3">
               {[
